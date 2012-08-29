@@ -6,8 +6,8 @@ import numpy as np
 import os
 import pandas as pd
 
-data_path = None
-submissions_path = None
+data_path = '~/Projects/SO Datafiles'
+submissions_path = '~/Projects/SO Outputs'
 if not data_path or not submissions_path:
     raise Exception("Set the data and submission paths in competition_utilities.py!")
 
