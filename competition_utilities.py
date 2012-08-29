@@ -45,6 +45,8 @@ def get_dataframe(file_name="train-sample.csv"):
     return pd.io.parsers.read_csv(os.path.join(data_path, file_name), converters = df_converters)
 
 def get_priors(file_name):
+    # seems to return the naive probability that an arbitrary post will be closed
+    # for each specific reason; it returns a list of global averages
     closed_reasons = [r[14] for r in get_reader(file_name)]
     closed_reason_counts = Counter(closed_reasons)
     reasons = sorted(closed_reason_counts.keys())
@@ -72,6 +74,7 @@ def cap_and_update_priors(old_priors, old_posteriors, new_priors, epsilon):
     return new_posteriors
 
 def cap_predictions(probs, epsilon):
+    # this is the multiclass log-loss function implementation
     probs[probs>1-epsilon] = 1-epsilon
     probs[probs<epsilon] = epsilon
     row_sums = probs.sum(axis=1)

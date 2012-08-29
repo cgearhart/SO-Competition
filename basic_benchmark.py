@@ -12,6 +12,9 @@ full_train_file = "train.csv"
 test_file = "public_leaderboard.csv"
 submission_file = "basic_benchmark.csv"
 
+# default feature names should include things like 'userid', 'PostCreationDate',
+# and the other column titles from the data itself
+
 feature_names = [ "BodyLength"
                 , "NumTags"
                 , "OwnerUndeletedAnswerCountAtPostTime"
@@ -29,12 +32,14 @@ def main():
 
     print("Training the model")
     rf = RandomForestClassifier(n_estimators=50, verbose=2, compute_importances=True, n_jobs=-1)
-    rf.fit(fea, data["OpenStatus"])
+    rf.fit(fea, data["OpenStatus"]) # This line trains the classifier; it fits
+    # the data, mapped to features, to the classifier
 
     print("Reading test file and making predictions")
     data = cu.get_dataframe(test_file)
     test_features = features.extract_features(feature_names, data)
-    probs = rf.predict_proba(test_features)
+    probs = rf.predict_proba(test_features) # the predicted probabilities;
+    # usually called yHat in ML texts
 
     print("Calculating priors and updating posteriors")
     new_priors = cu.get_priors(full_train_file)
