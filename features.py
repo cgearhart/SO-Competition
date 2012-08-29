@@ -50,6 +50,6 @@ if __name__=="__main__":
                     , "UserAge"
                     ]
               
-    data = cu.get_dataframe("C:\\Users\\Ben\\Temp\\StackOverflow\\train-sample.csv")
+    data = cu.get_dataframe()
     features = extract_features(feature_names, data)
     print(features)

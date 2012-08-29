@@ -6,8 +6,8 @@ import numpy as np
 import os
 import pandas as pd
 
-data_path = '~/Projects/SO Datafiles'
-submissions_path = '~/Projects/SO Outputs'
+data_path = os.path.join(os.path.expanduser('~'),'Projects/SO Datafiles')
+submissions_path = os.path.join(os.path.expanduser('~'),'Projects/SO Outputs')
 if not data_path or not submissions_path:
     raise Exception("Set the data and submission paths in competition_utilities.py!")
 

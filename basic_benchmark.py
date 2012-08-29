@@ -2,6 +2,11 @@ import competition_utilities as cu
 import features
 from sklearn.ensemble import RandomForestClassifier
 
+# submission format:
+# id(opt),not a real question,not constructive,off topic,open,too localized
+# excpet for id, each column should be a value [0,1], while the sum of each row
+# should be 1.
+
 train_file = "train-sample.csv"
 full_train_file = "train.csv"
 test_file = "public_leaderboard.csv"
