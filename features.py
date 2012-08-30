@@ -15,30 +15,36 @@ def camel_to_underscores(name):
 ##############################################################
 
 def body_length(data):
+    # replaces the body text with the number of characters in the text
     return data["BodyMarkdown"].apply(len)
 
 def num_tags(data):
+    # complicated way to count the number of non-null values in columns that match "Tag%d" prototype in each row
     return pd.DataFrame.from_dict({"NumTags": [sum(map(lambda x:
                     pd.isnull(x), row)) for row in (data[["Tag%d" % d
                     for d in range(1,6)]].values)] } ) ["NumTags"]
 
 def title_length(data):
+    # replaces the title text with the number of characters in the text
     return data["Title"].apply(len)
 
 def user_age(data):
+    # how many seconds between account creation and post creation
     return pd.DataFrame.from_dict({"UserAge": (data["PostCreationDate"]
             - data["OwnerCreationDate"]).apply(lambda x: x.total_seconds())})
 
 ###########################################################
 
 def extract_features(feature_names, data):
-    fea = pd.DataFrame(index=data.index)
+    fea = pd.DataFrame(index=data.index) # creates a dataframe object with the same number of rows as "data"
     for name in feature_names:
         if name in data:
+            # the feature name was already in the CSV file
             fea = fea.join(data[name])
         else:
-            fea = fea.join(getattr(features, 
-                camel_to_underscores(name))(data))
+            # use the functions above with the same feature name to calculate the requested value
+            fea = fea.join(getattr(features,
+                camel_to_underscores(name))(data)) # interesting note: "features" refers to the file, not the variable in __main__; i'm not entirely sure why - except that the definition of the order of precidence dictates that the file has highest precedence in the namespace at this point in the program
     return fea
 
 if __name__=="__main__":
@@ -50,6 +56,6 @@ if __name__=="__main__":
                     , "UserAge"
                     ]
               
-    data = cu.get_dataframe()
+    data = cu.get_dataframe() # by default returns panda dataframe for "train-sample.csv"
     features = extract_features(feature_names, data)
     print(features)
