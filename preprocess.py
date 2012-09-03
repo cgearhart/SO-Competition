@@ -1,23 +1,55 @@
 import competition_utilities as cu
 import pandas as pd
 import re
+import ngram
+from functools import partial
 
 ##############################################################
 ###### INCLUSION TEST FUNCTIONS
 ##############################################################
 
-def code_lines(text):
-    return ''.join([line for line in text if line.startswith(('\t','    '))])
+def code_lines(md):
+    return ''.join([line for line in md if line.startswith(('\t','    '))])
 
-def text_lines(text):
-    return ''.join([line for line in text if not line.startswith(('\t','    '))])
+def text_lines(md):
+    return ''.join([line for line in md if not line.startswith(('\t','    '))])
+
+def paragraph_count(md):
+    return md.count('\n\n')
+
+def sentence_count(md):
+    pass
+
+def code_lines_count(md):
+    return md.count('\n')
+
+def code_lines_length(md):
+    return [len(line) for line in md]
+
+def words_per_code_line(md):
+    return [line.lstrip().count(' ') for line in md]
+
+def ngram_wrapper(fn,nValue):
+    return partial(fn,nValue)
+
+def ngram(nValue,md):
+    pass
+          
+""" example ngram usage:
+    
+    for i in range(3):
+        ngram_fn = ngram_wrapper(ngram,i)
+        split_DFtext(data,'{}gram'.format(i),ngram_fn)
+    
+"""
+
 
 ##############################################################
 ###### DATA PROCESSING FUNCTIONS
 ##############################################################
 
 def split_DFtext(data,name="BodyMarkdown",inclusion_test_fn=lambda x: x):
-    data[name] = data["BodyMarkdown"].apply(inclusion_test_fn)
+    data[name] = data["BodyMarkdown"].apply(inclusion_test_fn) # this creates a new DF object with heading specified by "name"
     return data[name]
 
 ###########################################################
