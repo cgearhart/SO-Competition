@@ -1,7 +1,9 @@
+from __future__ import division
+from collections import Counter
+import string
 import competition_utilities as cu
 import pandas as pd
 import re
-import ngram
 from functools import partial
 
 ##############################################################
@@ -9,47 +11,42 @@ from functools import partial
 ##############################################################
 
 def code_lines(md):
-    return ''.join([line for line in md if line.startswith(('\t','    '))])
+    return '\n'.join([line.lstrip() for line in md.splitlines() if line.startswith(('\t','    '))]) # does not preserve indentation
 
 def text_lines(md):
-    return ''.join([line for line in md if not line.startswith(('\t','    '))])
+    return '\n'.join([line for line in md.splitlines() if not line.startswith(('\t','    ')) and len(line) > 0]) # non-empty lines that aren't indented
 
 def paragraph_count(md):
-    return md.count('\n\n')
+    return md.count('\n')
 
 def sentence_count(md):
     pass
 
-def code_lines_count(md):
-    return md.count('\n')
+def num_code_lines(md):
+    return len(md.splitlines())
 
 def code_lines_length(md):
-    return [len(line) for line in md]
+    return [len(line) for line in md.splitlines()]
 
-def words_per_code_line(md):
-    return [line.lstrip().count(' ') for line in md]
-
-def ngram_wrapper(fn,nValue):
-    return partial(fn,nValue)
-
-def ngram(nValue,md):
-    pass
-          
-""" example ngram usage:
-    
-    for i in range(3):
-        ngram_fn = ngram_wrapper(ngram,i)
-        split_DFtext(data,'{}gram'.format(i),ngram_fn)
-    
-"""
+def ngram(nValue,md,head=True):
+    md = md.translate(None,string.punctuation)
+    if head:
+        ngrams = [word[0:nValue] for word in md.split() if len(word) >= nValue]
+    else:
+        ngrams = [word[-nValue:] for word in md.split() if len(word) >= nValue]
+    ngram_counts = Counter(ngrams)
+    ngram_keys = sorted(ngram_counts.keys())
+    total = len(ngrams)
+    ngram_priors = [ngram_counts[ngram]/total for ngram in ngram_keys]
+    return dict(zip(ngram_keys,ngram_priors))
 
 
 ##############################################################
 ###### DATA PROCESSING FUNCTIONS
 ##############################################################
 
-def split_DFtext(data,name="BodyMarkdown",inclusion_test_fn=lambda x: x):
-    data[name] = data["BodyMarkdown"].apply(inclusion_test_fn) # this creates a new DF object with heading specified by "name"
+def split_df_text(df_col_data,name="NewCol",test_fn=lambda x: x):
+    data[name] = df_col_data.apply(test_fn) # this creates a new DF object with heading specified by "name"
     return data[name]
 
 ###########################################################
@@ -71,7 +68,50 @@ if __name__=="__main__":
     
     print data.shape
     
-    a = split_DFtext(data,'text',text_lines)
-    b=a.ix[0]
-    print b.splitlines()
+    df_index = 1
+    df_element = data["BodyMarkdown"].ix[df_index] # col/row indexing in a dataframe
+    print ' '
+    print 'BodyMarkdown:\n{}'.format(df_element)
+    print '\n########################\n'
+    
+    # Test inclusion test functions
+    textlines = text_lines(df_element)
+    print 'TextLines:\n{}'.format(textlines)
+    print '\n########################\n'
+    codelines = code_lines(df_element)
+    print 'CodeLines:\n{}'.format(codelines)
+    print '\n########################\n'
+    paragraphs = paragraph_count(textlines)
+    print 'Paragraphs:\n{}'.format(paragraphs)
+    #print '\n########################\n'
+    #sentences = split_df_text(data,name="sentences",test_fn=sentence_count)
+    #print 'Sentences:\n{}'.format(sentences[df_index])
+    print '\n########################\n'
+    numCodeLines = num_code_lines(codelines)
+    print 'Lines of code:\n{}'.format(numCodeLines)
+    print '\n########################\n'
+    codeLinesLength = code_lines_length(codelines)
+    print 'Length of code lines:\n{}'.format(codeLinesLength)
+    print '\n########################\n'
+    numCodeLines = num_code_lines(codelines)
+    print 'Lines of code:\n{}'.format(numCodeLines)
 
+    print '\n########################\n'
+    print 'leading N-grams:'
+    for i in range(2,5):
+        ngram_fn = partial(ngram,i)
+        print '\n########################\n'
+        print 'i: {}\n'.format(i)
+        print 'ngram\tprobability'
+        for k,val in ngram_fn(textlines).iteritems():
+            print '{}:\t{:.2f}'.format(k,val)
+        
+    print '\n########################\n'
+    print 'trailing N-grams:'
+    for i in range(2,5):
+        ngram_fn = partial(ngram,i)
+        print '\n########################\n'
+        print 'i: {}\n'.format(i)
+        print 'ngram\tprobability'
+        for k,val in ngram_fn(textlines,head=False).iteritems():
+            print '{}:\t{:.2f}'.format(k,val)
