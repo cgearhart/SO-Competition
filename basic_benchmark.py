@@ -1,5 +1,6 @@
 import competition_utilities as cu
 import features
+import preprocess
 from sklearn.ensemble import RandomForestClassifier
 
 # submission format:
@@ -23,24 +24,51 @@ feature_names = [ "BodyLength"
                 , "UserAge"
                 ]
 
+code_functions = [ "NumLinesCode"
+                 , "LenLinesCode"
+                 ]
+text_functions = [ "NumParagraphs"
+                 , "NumSentences"
+                 ]
+
 def main():
     print("Reading the data")
     data = cu.get_dataframe(train_file)
+    
+    print("Preprocessing")
+    code = preprocess.get_code(data)
+    text = preprocess.get_text(data)
+    codeFea = preprocess.process_and_pickle(code_functions,code)
+    textFea = preprocess.process_and_pickle(text_functions,text)
 
     print("Extracting features")
     fea = features.extract_features(feature_names, data)
+    
+    print("Joining features")
+    fea = fea.join(codeFea)
+    fea = fea.join(textFea)
 
     print("Training the model")
     # n_estimators = 50 means "create 50 decision trees in the forest"
     # n_jobs = -1 means "automatically detect cores/threads and parallelize the job"
-    rf = RandomForestClassifier(n_estimators=50, verbose=2, compute_importances=True, n_jobs=-1) # This just creates the object - nothing else happens
+    rf = RandomForestClassifier(n_estimators=100, verbose=2, compute_importances=True, n_jobs=-1) # This just creates the object - nothing else happens
     rf.fit(fea, data["OpenStatus"]) # This line trains the classifier; it fits the data, mapped to features, to the classifier
     # training the classifier means minimizing gini impurity (by default)
     # look it up on Wikipedia (if you care)
 
     print("Reading test file and making predictions")
     data = cu.get_dataframe(test_file)
+    
+    code = preprocess.get_code(data)
+    text = preprocess.get_text(data)
+    codeFea = preprocess.process_and_pickle(code_functions,code)
+    textFea = preprocess.process_and_pickle(text_functions,text)
+    
     test_features = features.extract_features(feature_names, data)
+    
+    test_features = test_features.join(codeFea)
+    test_features = test_features.join(textFea)
+    
     probs = rf.predict_proba(test_features) # the predicted probabilities;
     # the values are usually called yHat in ML texts, the probabilities are the
     # measure of how likely it is that the output will take on the value yHat

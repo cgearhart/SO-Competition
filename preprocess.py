@@ -53,8 +53,6 @@ def avg_line_len(code):
 
 def process_and_pickle(function_list,data):
     fea_df = pd.DataFrame(index=data.index) # creates a dataframe object with rows matched to "data"
-    
-    
     for name in function_list:
         if name in data:
             fea_df = fea_df.join(data[name])
@@ -74,6 +72,12 @@ def process_and_pickle(function_list,data):
             
     return fea_df
 
+def get_code(data):
+    return pd.DataFrame.from_dict({"CodeLines": data["BodyMarkdown"].apply(code_lines)})
+
+def get_text(data):
+    return pd.DataFrame.from_dict({"TextLines": data["BodyMarkdown"].apply(text_lines)})
+
 if __name__=="__main__":
     code_functions = [ "NumLinesCode"
                      , "LenLinesCode"
@@ -86,9 +90,9 @@ if __name__=="__main__":
     data = cu.get_dataframe() # by default returns panda dataframe for "train-sample.csv"
     
     print 'Separating source code.'
-    code = pd.DataFrame.from_dict({"CodeLines": data["BodyMarkdown"].apply(code_lines)})
+    code = get_code(data)
     print 'Separating text.'
-    text = pd.DataFrame.from_dict({"TextLines": data["BodyMarkdown"].apply(text_lines)})
+    text = get_text(data)
     
     print 'Processing source code features.'
     features = data.join(process_and_pickle(code_functions,code))
@@ -96,4 +100,4 @@ if __name__=="__main__":
     features = features.join(process_and_pickle(text_functions,text))
     
     print features
-    print features.head()
+
