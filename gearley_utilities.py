@@ -1,4 +1,5 @@
 import os
+import dateutil
 import pandas as pd
 
 
@@ -7,6 +8,13 @@ submissions_path = os.path.join(os.path.expanduser("~"),"Projects/SO Outputs")
 if not data_path or not submissions_path:
     raise Exception("Set the data and submission paths in gearley_utilities.py!")
 
+def parse_date_maybe_null(date):
+    if date:
+        return dateutil.parser.parse(date)
+    return None
+
+df_converters = {"PostCreationDate": dateutil.parser.parse,
+                 "OwnerCreationDate": dateutil.parser.parse}
 
 def get_dataframe(file_name="train-sample.csv",force_update=False):
     # update get_dataframe to try loading from a pickle before loading from CSV
@@ -17,7 +25,7 @@ def get_dataframe(file_name="train-sample.csv",force_update=False):
         print "Loading a pickle named {}".format(name_without_ext+".pickle")
         return pd.load(pickle_file)
     elif os.path.exists(file_name):
-        print "No pickle found, looking for a csv file named.".format(name_without_ext+".pickle")
+        print "No pickle found, looking for a csv file named {}".format(name_without_ext+".csv")
         return pd.io.parsers.read_csv(os.path.join(data_path, file_name), converters = df_converters)
     else:
         raise IOError

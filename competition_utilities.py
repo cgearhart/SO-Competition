@@ -11,14 +11,6 @@ import pandas as pd
 if not data_path or not submissions_path:
     raise Exception("Set the data and submission paths in competition_utilities.py!")
 
-def parse_date_maybe_null(date):
-    if date:
-        return dateutil.parser.parse(date)
-    return None
-
-df_converters = {"PostCreationDate": dateutil.parser.parse,
-                 "OwnerCreationDate": dateutil.parser.parse}
-
 def get_reader(file_name="train-sample.csv"):
     reader = csv.reader(open(os.path.join(data_path, file_name)))
     header = reader.next()

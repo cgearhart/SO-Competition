@@ -38,6 +38,10 @@ def len_lines_code(df):
     c_len = df["CodeLines"].apply(avg_line_len)
     return pd.DataFrame.from_dict({"LenLinesCode": c_len})
 
+def len_sentences(df):
+    s_len = df["TextLines"].apply(avg_sentence_len)
+    return pd.DataFrame.from_dict({"LenSentences": s_len})
+
 ##############################################################
 ###### PROCESSING FUNCTIONS
 ##############################################################
@@ -49,16 +53,22 @@ def avg_line_len(code):
     len_lines = [len(line) for line in code]
     return 0 if len(len_lines) == 0 else sum(len_lines)/len(len_lines)
 
+def avg_sentence_len(text):
+    text = text.translate(string.maketrans('!?','..'))
+    text = text.split('.')
+    sent_lens = [len(sent.lstrip()) for sent in text]
+    return 0 if len(sent_lens) == 0 else sum(sent_lens)/len(sent_lens)
+
 ###########################################################
 
-def process_and_pickle(function_list,data):
+def process_and_pickle(function_list,data,dataFileName="default"):
     fea_df = pd.DataFrame(index=data.index) # creates a dataframe object with rows matched to "data"
     for name in function_list:
         if name in data:
             fea_df = fea_df.join(data[name])
         else:
             try:
-                fea_df = fea_df.join(gu.get_dataframe(name))
+                fea_df = fea_df.join(gu.get_dataframe(name+dataFileName))
             except IOError:
                 print 'No dataframe pickle named {} found.'.format(name)
                 
@@ -68,7 +78,7 @@ def process_and_pickle(function_list,data):
                 
                 fea_df = fea_df.join(getattr(preprocess,
                        camel_to_underscores(name))(data))
-                gu.save_dataframe(new_df,name)
+                gu.save_dataframe(new_df,name+dataFileName)
             
     return fea_df
 

@@ -11,24 +11,22 @@ from sklearn.ensemble import RandomForestClassifier
 train_file = "train-sample.csv"
 full_train_file = "train.csv"
 test_file = "public_leaderboard.csv"
-submission_file = "basic_benchmark.csv"
+submission_file = "gearley.csv"
 
 # default feature names could include things like 'userid', 'PostCreationDate',
 # and the other column titles from the data itself 
 
-feature_names = [ "BodyLength"
-                , "NumTags"
-                , "OwnerUndeletedAnswerCountAtPostTime"
+feature_names = [ "OwnerUndeletedAnswerCountAtPostTime"
                 , "ReputationAtPostCreation"
                 , "TitleLength"
                 , "UserAge"
                 ]
 
 code_functions = [ "NumLinesCode"
-                 , "LenLinesCode"
                  ]
 text_functions = [ "NumParagraphs"
                  , "NumSentences"
+                 , "LenSentences"
                  ]
 
 def main():
@@ -38,8 +36,8 @@ def main():
     print("Preprocessing")
     code = preprocess.get_code(data)
     text = preprocess.get_text(data)
-    codeFea = preprocess.process_and_pickle(code_functions,code)
-    textFea = preprocess.process_and_pickle(text_functions,text)
+    codeFea = preprocess.process_and_pickle(code_functions,code,"training")
+    textFea = preprocess.process_and_pickle(text_functions,text,"training")
 
     print("Extracting features")
     fea = features.extract_features(feature_names, data)
@@ -51,7 +49,7 @@ def main():
     print("Training the model")
     # n_estimators = 50 means "create 50 decision trees in the forest"
     # n_jobs = -1 means "automatically detect cores/threads and parallelize the job"
-    rf = RandomForestClassifier(n_estimators=100, verbose=2, compute_importances=True, n_jobs=-1) # This just creates the object - nothing else happens
+    rf = RandomForestClassifier(n_estimators=50, verbose=2, compute_importances=True, n_jobs=-1) # This just creates the object - nothing else happens
     rf.fit(fea, data["OpenStatus"]) # This line trains the classifier; it fits the data, mapped to features, to the classifier
     # training the classifier means minimizing gini impurity (by default)
     # look it up on Wikipedia (if you care)
@@ -61,8 +59,8 @@ def main():
     
     code = preprocess.get_code(data)
     text = preprocess.get_text(data)
-    codeFea = preprocess.process_and_pickle(code_functions,code)
-    textFea = preprocess.process_and_pickle(text_functions,text)
+    codeFea = preprocess.process_and_pickle(code_functions,code,"Test")
+    textFea = preprocess.process_and_pickle(text_functions,text,"Test")
     
     test_features = features.extract_features(feature_names, data)
     
