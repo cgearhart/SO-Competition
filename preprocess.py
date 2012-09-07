@@ -1,117 +1,99 @@
 from __future__ import division
 from collections import Counter
-import string
+from functools import wraps
 import competition_utilities as cu
+import gearley_utilities as gu
+import preprocess
 import pandas as pd
+import string
 import re
-from functools import partial
+
+def camel_to_underscores(name):
+    s1 = re.sub('(.)([A-Z][a-z]+)', r'\1_\2', name)
+    return re.sub('([a-z0-9])([A-Z])', r'\1_\2', s1).lower()
 
 ##############################################################
 ###### INCLUSION TEST FUNCTIONS
 ##############################################################
 
-def code_lines(md):
-    return '\n'.join([line.lstrip() for line in md.splitlines() if line.startswith(('\t','    '))]) # does not preserve indentation
+def code_lines(df):
+    return '\n'.join([line.lstrip() for line in df.splitlines() if line.startswith(('\t','    '))]) # does not preserve indentation
 
-def text_lines(md):
-    return '\n'.join([line for line in md.splitlines() if not line.startswith(('\t','    ')) and len(line) > 0]) # non-empty lines that aren't indented
+def text_lines(df):
+    return '\n'.join([line for line in df.splitlines() if not line.startswith(('\t','    ')) and len(line) > 0]) # non-empty lines that aren't indented
 
-def paragraph_count(md):
-    return md.count('\n')
+def num_paragraphs(df):
+    p_count = df["TextLines"].apply(lambda x: x.count('\n'))
+    return pd.DataFrame.from_dict({"NumParagraphs": p_count})
 
-def sentence_count(md):
-    pass
+def num_sentences(df):
+    s_count = df["TextLines"].apply(count_end_marks)
+    return pd.DataFrame.from_dict({"NumSentences": s_count})
 
-def num_code_lines(md):
-    return len(md.splitlines())
+def num_lines_code(df):
+    l_count = df["CodeLines"].apply(lambda x: len(x.splitlines()))
+    return pd.DataFrame.from_dict({"NumLinesCode": l_count})
 
-def code_lines_length(md):
-    return [len(line) for line in md.splitlines()]
-
-def ngram(nValue,md,head=True):
-    md = md.translate(None,string.punctuation)
-    if head:
-        ngrams = [word[0:nValue] for word in md.split() if len(word) >= nValue]
-    else:
-        ngrams = [word[-nValue:] for word in md.split() if len(word) >= nValue]
-    ngram_counts = Counter(ngrams)
-    ngram_keys = sorted(ngram_counts.keys())
-    total = len(ngrams)
-    ngram_priors = [ngram_counts[ngram]/total for ngram in ngram_keys]
-    return dict(zip(ngram_keys,ngram_priors))
-
+def len_lines_code(df):
+    c_len = df["CodeLines"].apply(avg_line_len)
+    return pd.DataFrame.from_dict({"LenLinesCode": c_len})
 
 ##############################################################
-###### DATA PROCESSING FUNCTIONS
+###### PROCESSING FUNCTIONS
 ##############################################################
 
-def split_df_text(df_col_data,name="NewCol",test_fn=lambda x: x):
-    data[name] = df_col_data.apply(test_fn) # this creates a new DF object with heading specified by "name"
-    return data[name]
+def count_end_marks(text):
+    return sum([text.count(sym) for sym in ['.','!','?']])
+
+def avg_line_len(code):
+    len_lines = [len(line) for line in code]
+    return 0 if len(len_lines) == 0 else sum(len_lines)/len(len_lines)
 
 ###########################################################
 
 def process_and_pickle(function_list,data):
-    text_stats = pd.DataFrame(index=BodyMarkdown.index) # creates a dataframe object with rows matched to "data"
-    code_stats = pd.DataFrame(index=BodyMarkdown.index)
-    for name in text_functions:
-        text_stats = text_stats.join(getattr(preprocess,name)(BodyMarkdown))
-    for name in code_functions:
-        code_stats = text_stats.join(getattr(preprocess,name)(BodyMarkdown))
-    return stats
+    fea_df = pd.DataFrame(index=data.index) # creates a dataframe object with rows matched to "data"
+    
+    
+    for name in function_list:
+        if name in data:
+            fea_df = fea_df.join(data[name])
+        else:
+            try:
+                fea_df = fea_df.join(gu.get_dataframe(name))
+            except IOError:
+                print 'No dataframe pickle named {} found.'.format(name)
+                
+                new_df = getattr(preprocess,
+                                 camel_to_underscores(name))(data)
+                
+                
+                fea_df = fea_df.join(getattr(preprocess,
+                       camel_to_underscores(name))(data))
+                gu.save_dataframe(new_df,name)
+            
+    return fea_df
 
 if __name__=="__main__":
-    function_names = [ ''
+    code_functions = [ "NumLinesCode"
+                     , "LenLinesCode"
                      ]
-              
+    text_functions = [ "NumParagraphs"
+                     , "NumSentences"
+                     ]
+    
+    print 'Getting the initial data'
     data = cu.get_dataframe() # by default returns panda dataframe for "train-sample.csv"
     
-    print data.shape
+    print 'Separating source code.'
+    code = pd.DataFrame.from_dict({"CodeLines": data["BodyMarkdown"].apply(code_lines)})
+    print 'Separating text.'
+    text = pd.DataFrame.from_dict({"TextLines": data["BodyMarkdown"].apply(text_lines)})
     
-    df_index = 1
-    df_element = data["BodyMarkdown"].ix[df_index] # col/row indexing in a dataframe
-    print ' '
-    print 'BodyMarkdown:\n{}'.format(df_element)
-    print '\n########################\n'
+    print 'Processing source code features.'
+    features = data.join(process_and_pickle(code_functions,code))
+    print 'Processing text features.'
+    features = features.join(process_and_pickle(text_functions,text))
     
-    # Test inclusion test functions
-    textlines = text_lines(df_element)
-    print 'TextLines:\n{}'.format(textlines)
-    print '\n########################\n'
-    codelines = code_lines(df_element)
-    print 'CodeLines:\n{}'.format(codelines)
-    print '\n########################\n'
-    paragraphs = paragraph_count(textlines)
-    print 'Paragraphs:\n{}'.format(paragraphs)
-    #print '\n########################\n'
-    #sentences = split_df_text(data,name="sentences",test_fn=sentence_count)
-    #print 'Sentences:\n{}'.format(sentences[df_index])
-    print '\n########################\n'
-    numCodeLines = num_code_lines(codelines)
-    print 'Lines of code:\n{}'.format(numCodeLines)
-    print '\n########################\n'
-    codeLinesLength = code_lines_length(codelines)
-    print 'Length of code lines:\n{}'.format(codeLinesLength)
-    print '\n########################\n'
-    numCodeLines = num_code_lines(codelines)
-    print 'Lines of code:\n{}'.format(numCodeLines)
-
-    print '\n########################\n'
-    print 'leading N-grams:'
-    for i in range(2,5):
-        ngram_fn = partial(ngram,i)
-        print '\n########################\n'
-        print 'i: {}\n'.format(i)
-        print 'ngram\tprobability'
-        for k,val in ngram_fn(textlines).iteritems():
-            print '{}:\t{:.2f}'.format(k,val)
-        
-    print '\n########################\n'
-    print 'trailing N-grams:'
-    for i in range(2,5):
-        ngram_fn = partial(ngram,i)
-        print '\n########################\n'
-        print 'i: {}\n'.format(i)
-        print 'ngram\tprobability'
-        for k,val in ngram_fn(textlines,head=False).iteritems():
-            print '{}:\t{:.2f}'.format(k,val)
+    print features
+    print features.head()

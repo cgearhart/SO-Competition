@@ -15,7 +15,7 @@ def camel_to_underscores(name):
 ##############################################################
 
 def body_length(data):
-    # replaces the body text with the number of characters in the text
+    # returns a dataframe with the number of characters in the text
     return data["BodyMarkdown"].apply(len)
 
 def num_tags(data):
@@ -25,7 +25,7 @@ def num_tags(data):
                     for d in range(1,6)]].values)] } ) ["NumTags"]
 
 def title_length(data):
-    # replaces the title text with the number of characters in the text
+    # returns a dataframe with the number of characters in the text
     return data["Title"].apply(len)
 
 def user_age(data):

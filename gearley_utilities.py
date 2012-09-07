@@ -12,14 +12,18 @@ def get_dataframe(file_name="train-sample.csv",force_update=False):
     # update get_dataframe to try loading from a pickle before loading from CSV
     name_without_ext,ext = os.path.splitext(file_name)
     pickle_file = os.path.join(data_path,name_without_ext+".pickle")
+    file_name = os.path.join(data_path,name_without_ext+".csv")
     if not force_update and os.path.exists(pickle_file):
-        print "Found a pickle, loading from that."
+        print "Loading a pickle named {}".format(name_without_ext+".pickle")
         return pd.load(pickle_file)
-    else:
-        print "No pickle found, loading from csv."
+    elif os.path.exists(file_name):
+        print "No pickle found, looking for a csv file named.".format(name_without_ext+".pickle")
         return pd.io.parsers.read_csv(os.path.join(data_path, file_name), converters = df_converters)
+    else:
+        raise IOError
 
-def save_dataframe(df_obj,filename):
+def save_dataframe(df_obj,file_name):
     # save a dataframe object to a file specified by filename
     name_without_ext,ext = os.path.splitext(file_name)
     df_obj.save(os.path.join(data_path,name_without_ext+".pickle"))
+    print "Pickled the df object {}".format(file_name)
