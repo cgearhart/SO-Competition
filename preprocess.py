@@ -3,8 +3,10 @@ from collections import Counter
 from functools import wraps
 import competition_utilities as cu
 import gearley_utilities as gu
-import preprocess
+import numpy as np
+import datetime as dt
 import pandas as pd
+import preprocess
 import string
 import re
 
@@ -41,6 +43,9 @@ def len_lines_code(df):
 def len_sentences(df):
     s_len = df["TextLines"].apply(avg_sentence_len)
     return pd.DataFrame.from_dict({"LenSentences": s_len})
+
+def time_to_close(df):
+    
 
 ##############################################################
 ###### PROCESSING FUNCTIONS
@@ -85,8 +90,33 @@ def process_and_pickle(function_list,data,dataFileName="default"):
 def get_code(data):
     return pd.DataFrame.from_dict({"CodeLines": data["BodyMarkdown"].apply(code_lines)})
 
-def get_text(data):
-    return pd.DataFrame.from_dict({"TextLines": data["BodyMarkdown"].apply(text_lines)})
+def reopen(df,num_days=14):
+    if "PostClosedDate" not in df:
+        raise KeyError
+    df["PostClosedDate"] = df["PostClosedDate"].apply(gu.parse_date_maybe_null)
+    df = reopen(df,num_days=14)
+    time_delta = dt.timedelta(days=num_days)
+    delta_date = df["PostClosedDate"] - df["PostCreationDate"]
+    index = df[(df["OpenStatus"] != "open") & (delta_date <= dt.timedelta(days=14))].index
+    df["OpenStatus"].ix[index] = "open"
+    df["PostClosedDate"].ix[index] = np.nan
+    return df
+
+def preprocess(file_name="train-sample.csv"):
+    # Build default dataframe and update column set with derived column data
+    
+    df = gu.build_dataframe(file_name)
+    df = df.join(get_code(df)) # Separate code from body and join title with body
+    df["BodyMarkdown"] = data["BodyMarkdown"].apply(text_lines) # Remove code from body text
+    
+    # Prepend title to body text and remove title column
+    df["BodyMarkdown"] = df["Title"] + "\n" + df["BodyMarkdown"]
+    del df["Title"]
+
+    df = reopen(df,num_days=14) # Reopen questions that were closed more than 2 weeks after being asked
+
+    
+
 
 if __name__=="__main__":
     code_functions = [ "NumLinesCode"
@@ -95,6 +125,15 @@ if __name__=="__main__":
     text_functions = [ "NumParagraphs"
                      , "NumSentences"
                      ]
+    
+    
+    # Build & update dataframes for training data & test_data
+    # gu.build_dataframe("train-sample.csv")
+    # gu.build_dataframe("public_leaderboard.csv")
+    
+    # Modify dataframe objects
+    
+    
     
     print 'Getting the initial data'
     data = cu.get_dataframe() # by default returns panda dataframe for "train-sample.csv"

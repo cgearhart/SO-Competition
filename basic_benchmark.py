@@ -49,7 +49,7 @@ def main():
     print("Training the model")
     # n_estimators = 50 means "create 50 decision trees in the forest"
     # n_jobs = -1 means "automatically detect cores/threads and parallelize the job"
-    rf = RandomForestClassifier(n_estimators=50, verbose=2, compute_importances=True, n_jobs=-1) # This just creates the object - nothing else happens
+    rf = RandomForestClassifier(n_estimators=100, verbose=2, compute_importances=True, n_jobs=-1) # This just creates the object - nothing else happens
     rf.fit(fea, data["OpenStatus"]) # This line trains the classifier; it fits the data, mapped to features, to the classifier
     # training the classifier means minimizing gini impurity (by default)
     # look it up on Wikipedia (if you care)
